@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include "util.h"
 
 |.arch x64
@@ -19,6 +20,24 @@
 |  call   rax
 |.endmacro
 
+int contraction(char **p)
+{
+	char target = **p;
+	int offset = 1;
+
+	(*p)++;
+
+	// ignore character that is not brainfuck operator
+	while (**p == target || !strchr("<>,.+-[]", **p)) {
+		offset = (**p == target) ? offset + 1 : offset;
+		(*p)++;
+	}
+
+	(*p)--;
+
+	return offset;
+}
+
 #define Dst &state
 #define MAX_NESTING 256
 
@@ -31,6 +50,7 @@ int main(int argc, char *argv[])
 	unsigned int maxpc = 0;
 	int pcstack[MAX_NESTING];
 	int *top = pcstack, *limit = pcstack + MAX_NESTING;
+	int offsets;
 
 	// Function prologue.
 	|  push PTR
@@ -39,16 +59,24 @@ int main(int argc, char *argv[])
 	for (char *p = read_file(argv[1]); *p; p++) {
 		switch (*p) {
 		case '>':
-			|  inc  PTR
+			offsets = contraction(&p);
+
+			|  add  PTR, offsets
 			break;
 		case '<':
-			|  dec  PTR
+			offsets = contraction(&p);
+
+			|  sub  PTR, offsets
 			break;
 		case '+':
-			|  inc  byte [PTR]
+			offsets = contraction(&p);
+
+			|  add  byte [PTR], offsets
 			break;
 		case '-':
-			|  dec  byte [PTR]
+			offsets = contraction(&p);
+
+			|  sub  byte [PTR], offsets
 			break;
 		case '.':
 			|  movzx edi, byte [PTR]
