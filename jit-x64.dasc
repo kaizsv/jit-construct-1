@@ -38,6 +38,11 @@ int contraction(char **p)
 	return offset;
 }
 
+int clear_loop(char *p)
+{
+	return (*(p+1) == '-' && *(p+2) == ']');
+}
+
 #define Dst &state
 #define MAX_NESTING 256
 
@@ -91,6 +96,13 @@ int main(int argc, char *argv[])
 			// Each loop gets two pclabels: at the beginning and end.
 			// We store pclabel offsets in a stack to link the loop
 			// begin and end together.
+
+			if (clear_loop(p)) {
+				p += 2;
+				|  mov byte [PTR], 0
+				break;
+			}
+
 			maxpc += 2;
 			*top++ = maxpc;
 			dasm_growpc(&state, maxpc);
